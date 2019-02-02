@@ -1,0 +1,4 @@
+#!/usr/bin/env sh
+# vim: set ft=sh
+
+echo `cat /etc/cmdline /etc/cmdline.d/* 2>/dev/null | sed 's/#.*$//'`
