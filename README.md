@@ -4,7 +4,7 @@ A simple tool to generate a kernel cmdline string from `/etc/cmdline` and `/etc/
 
 ## Requirements
 
-* Requires `sh`, `cat`, and `sed`
+* Requires `bash`, `cat`, `realpath`, and `sed`
 
 ## Installation
 
@@ -18,7 +18,9 @@ A simple tool to generate a kernel cmdline string from `/etc/cmdline` and `/etc/
 
 ## Usage
 
-`gencmdline` reads `/etc/cmdline` first and then any files in `/etc/cmdline.d/` removing any comments or empty lines and outputs a space concatenated string.
+`gencmdline` reads `/etc/cmdline` first and then any files in `/etc/cmdline.d/` removing any comments or empty lines and outputs a single space concatenated string.
+
+Optionally reads from an alternate root directory with `gencmdline <dir>`
 
 Comments must start with `#`
 
