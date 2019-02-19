@@ -1,63 +1,75 @@
-#!/usr/bin/env bash
+#!/bin/bash
+#
+# Generate a kernel cmdline string from /etc/cmdline and /etc/cmdline.d/
 
-NAME=${0##*/}
-ROOT="" # ensure that we're not reading ROOT from the environment
+set -euo pipefail
+
+readonly SELF="${0##*/}"
 
 usage() {
-  cat << EOF
-usage: $NAME [ROOT]
+	cat <<-EOF
+		Usage: ${SELF} [OPTIONS]... [ROOT]
 
-Generates a kernel cmdline string from /etc/cmdline and /etc/cmdline.d/
-Optionally reads from an alternate root directory at ROOT.
+		Generate a kernel cmdline string from /etc/cmdline and /etc/cmdline.d/
+		Optionally reads from an alternate root directory at ROOT.
 
-  Options:
-    -h,--help       Print this help message
+		OPTIONS:
+		  -h, --help        Print this help message
 
-EOF
-  exit 0
+	EOF
+	exit 0
 }
 
-invalid_option() {
-  >&2 echo "$NAME: unrecognized option '$1'"
-  >&2 echo "Try '$NAME --help' for more information"
-  exit 1
+error() {
+	if [[ $# -gt 0 ]]; then
+		>&2 echo "${SELF}: $@"
+	fi
+	exit 1
 }
 
-invalid_dir() {
-  >&2 echo "$NAME: $1: No such file or directory"
-  exit 1
+error_usage() {
+	if [[ $# -gt 0 ]]; then
+		>&2 echo "${SELF}: $@"
+	fi
+	>&2 echo "Try '${SELF} --help' for more information"
+	exit 1
 }
 
-# Loop over arugments
-while [[ -n "$1" ]]; do
-  case "$1" in
-    -h | --help )
-      usage
-      ;;
-    -* )
-      invalid_option "$1"
-      ;;
-    * )
-      if [[ -n "$ROOT" ]]; then
-        invalid_option "$1"
-      fi
-      ROOT="$1"
-      ;;
-  esac
-  shift
-done
+main() {
+	# Read arguments
+	local opts
+	if ! opts="$(getopt -n "${SELF}" -o h -l help -- "$@")"; then
+		error_usage
+	fi
+	eval set -- "${opts}"
+	unset opts
 
-# Normalize ROOT path
-ROOT="$(realpath -Lmqs "$ROOT")"
+	while [[ $# -gt 0 ]]; do
+		case "$1" in
+			-h|--help)  usage;;
+			--)         shift 1; break;;
+			*)          error "internal error [1]";;
+		esac
+	done
 
-# Ensure ROOT is valid
-if [[ -n "$ROOT" && ! -d "$ROOT" ]]; then
-  invalid_dir "$ROOT"
-elif [[ ! -d "$ROOT/etc" ]]; then
-  invalid_dir "$ROOT/etc"
-fi
+	if [[ $# -gt 1 ]]; then
+		error_usage "invalid operands"
+	fi
 
-# Generate cmdline string
-# Use echo and subshell to normalize whitespace and concatenate to a space delimited
-# single line
-echo `cat $ROOT/etc/cmdline $ROOT/etc/cmdline.d/* 2>/dev/null | sed 's/#.*$//'`
+	# Normalize ROOT path
+	local ROOT
+	if ! ROOT="$(realpath -eq "${1:-/}")" || [[ ! -d "${ROOT}" ]]; then
+		error "$1: No such file or directory"
+	else
+		readonly ROOT
+	fi
+
+	# Generate cmdline string
+	# Use unquoted echo and subshell to normalize whitespace and concatenate to
+	# a space delimited single line
+	echo -E $(cat $ROOT/etc/cmdline $ROOT/etc/cmdline.d/* 2>/dev/null | sed 's/#.*//')
+}
+
+main "$@"
+
+# vim: ft=sh sw=0 sts=0 noet
