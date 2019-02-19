@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-# vim: set ft=sh
 
 NAME=${0##*/}
 ROOT="" # ensure that we're not reading ROOT from the environment
